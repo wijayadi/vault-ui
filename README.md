@@ -243,6 +243,36 @@ pnpm check
 
 Tests use Vitest, Testing Library, jsdom, and Supertest. Server proxy tests inject a mock `fetch` implementation.
 
+## CI and releases
+
+Two GitHub Actions workflows are included:
+
+- **`.github/workflows/ci.yml`** runs on every push to `master`/`main` and on pull requests:
+  - lint, type-check, and tests on Node 22 and Node 24
+  - production web/server build and desktop bundle build
+  - Docker image build validation (without pushing)
+- **`.github/workflows/release.yml`** runs when a `v*.*.*` tag is pushed:
+  - repeats lint, type-check, tests, and the production build
+  - publishes multi-arch images to Docker Hub (`wijayadi/vault-ui`) and GitHub Container Registry (`ghcr.io/<owner>/vault-ui`)
+  - packages the Electron app for Linux, macOS, and Windows
+  - creates a GitHub Release containing the web/server archive, desktop packages, and generated release notes
+
+Create a release with:
+
+```bash
+git tag v3.0.1
+git push origin v3.0.1
+```
+
+Configure these repository secrets before releasing:
+
+| Secret               | Required | Description                                     |
+| -------------------- | -------- | ----------------------------------------------- |
+| `DOCKERHUB_TOKEN`    | yes      | Docker Hub access token for `wijayadi/vault-ui` |
+| `DOCKERHUB_USERNAME` | no       | Docker Hub username; defaults to `wijayadi`     |
+
+`GITHUB_TOKEN` is provided automatically and is used for GHCR and the GitHub Release. The release job also uses the repository's default `contents: write` and `packages: write` permissions declared in the workflow.
+
 ## Desktop app
 
 ```bash
