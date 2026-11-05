@@ -1,35 +1,60 @@
----
-version: '2'
 services:
   vault:
-    image: vault
-    privileged: true
-    volumes:
-      - ./misc:/misc
-    ports:
-      - "8200:8200"
-      - "8201:8201"
+    image: hashicorp/vault:latest
+    container_name: vault-ui-vault
+    cap_add:
+      - IPC_LOCK
     environment:
-      VAULT_ADDR: http://127.0.0.1:8200
-      VAULT_LOCAL_CONFIG: '{"listener" : { "tcp" : {"address" : "0.0.0.0:8201", "tls_cert_file" : "/misc/devserver.crt", "tls_key_file" : "/misc/devserver.key" } } }'
+      VAULT_DEV_ROOT_TOKEN_ID: root
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    ports:
+      - '8200:8200'
+    healthcheck:
+      test: ['CMD', 'vault', 'status']
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   vault-ui:
-    build: .
+    build:
+      context: .
+    container_name: vault-ui
+    depends_on:
+      vault:
+        condition: service_healthy
     ports:
-      - "8000:8000"
-    links:
-      - vault
-    volumes:
-      - .:/app
+      - '8000:8000'
     environment:
-      NODE_TLS_REJECT_UNAUTHORIZED: 0
+      PORT: 8000
       VAULT_URL_DEFAULT: http://vault:8200
-      VAULT_AUTH_DEFAULT: USERNAMEPASSWORD
-    command: ["dev"]
-#      VAULT_SUPPLIED_TOKEN_HEADER: 'X-Remote-User'
+      VAULT_AUTH_DEFAULT: TOKEN
+      # VAULT_NAMESPACE_DEFAULT: admin
+      # VAULT_SUPPLIED_TOKEN_HEADER: X-Remote-User
+      # CUSTOM_CA_CERT: |
+      #   -----BEGIN CERTIFICATE-----
+      #   ...
+      #   -----END CERTIFICATE-----
+    restart: unless-stopped
 
-  webpack:
-    build: .
+  # Optional local development stack:
+  #   docker compose --profile dev up
+  vault-ui-dev:
+    profiles: ['dev']
+    image: node:24-alpine
+    working_dir: /app
+    command: sh -c "corepack enable && pnpm install && pnpm dev"
+    depends_on:
+      vault:
+        condition: service_healthy
+    ports:
+      - '5173:5173'
+      - '8000:8000'
     volumes:
       - .:/app
-    command: yarn run dev-pack
+      - vault-ui-node-modules:/app/node_modules
+    environment:
+      VAULT_URL_DEFAULT: http://vault:8200
+      VAULT_AUTH_DEFAULT: TOKEN
+
+volumes:
+  vault-ui-node-modules:

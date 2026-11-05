@@ -1,14 +1,11 @@
 #!/bin/sh
+set -eu
 
-if [[ ! -z "$CUSTOM_CA_CERT" ]]; then
-  echo "$CUSTOM_CA_CERT" > misc/custom_ca.crt
-  export NODE_EXTRA_CA_CERTS=misc/custom_ca.crt
-fi
-
-if [ "$1" = 'start_app' ]; then
-  exec yarn run serve "$@"
-elif [ "$1" = 'dev' ]; then
-  exec yarn run dev "$@"
+if [ -n "${CUSTOM_CA_CERT:-}" ]; then
+  cert_file="${TMPDIR:-/tmp}/vault-ui-custom-ca.crt"
+  printf '%s\n' "$CUSTOM_CA_CERT" > "$cert_file"
+  export NODE_EXTRA_CA_CERTS="$cert_file"
+  echo "Vault-UI: trusting custom CA certificate at $cert_file"
 fi
 
 exec "$@"

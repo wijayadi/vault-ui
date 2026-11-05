@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "fullname" . }}
@@ -9,32 +9,55 @@ metadata:
     heritage: {{ .Release.Service }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "name" . }}
+      release: {{ .Release.Name }}
   template:
     metadata:
       labels:
         app: {{ template "name" . }}
         release: {{ .Release.Name }}
     spec:
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: VAULT_URL_DEFAULT
-              value: {{ .Values.vault.url }}
+              value: {{ .Values.vault.url | quote }}
             - name: VAULT_AUTH_DEFAULT
-              value: {{ .Values.vault.auth }}
-
+              value: {{ .Values.vault.auth | quote }}
+            {{- if .Values.vault.namespace }}
+            - name: VAULT_NAMESPACE_DEFAULT
+              value: {{ .Values.vault.namespace | quote }}
+            {{- end }}
+            {{- if .Values.vault.suppliedTokenHeader }}
+            - name: VAULT_SUPPLIED_TOKEN_HEADER
+              value: {{ .Values.vault.suppliedTokenHeader | quote }}
+            {{- end }}
           ports:
             - containerPort: {{ .Values.service.internalPort }}
           livenessProbe:
             httpGet:
-              path: /
+              path: /healthz
               port: {{ .Values.service.internalPort }}
+            initialDelaySeconds: 10
+            periodSeconds: 30
           readinessProbe:
             httpGet:
-              path: /
+              path: /healthz
               port: {{ .Values.service.internalPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
           resources:
 {{ toYaml .Values.resources | indent 12 }}
     {{- if .Values.nodeSelector }}

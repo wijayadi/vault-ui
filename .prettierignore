@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-server
+dist-electron
+release
+coverage
+pnpm-lock.yaml
+build
+misc
+kubernetes/chart/vault-ui/templates

@@ -1,44 +1,56 @@
 #!/bin/sh
-echo "------------- yarn install -------------"
-yarn install
+set -eu
 
-echo "------------- docker-compose up -d -------------"
-docker-compose up -d
-echo
+COMPOSE="${COMPOSE:-docker compose}"
 
-echo "------------- docker-compose ps -------------"
-docker-compose ps
-echo
+echo "------------- pnpm install -------------"
+pnpm install
+
+echo "------------- ${COMPOSE} up -d -------------"
+${COMPOSE} up -d vault
+${COMPOSE} ps
 
 exec_in_vault() {
-  echo "------------- $@ -------------"
-  docker-compose exec -T vault "$@"
-  echo
+  echo "------------- $* -------------"
+  ${COMPOSE} exec -T vault "$@"
 }
 
-exec_in_vault vault login "$(docker-compose logs vault | awk '/Root Token:/ {print $NF;}' | tail -n 1 | sed 's/\x1b\[[0-9;]*m//g')"
+echo "------------- waiting for Vault -------------"
+for _ in $(seq 1 30); do
+  if ${COMPOSE} exec -T vault vault status >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
+ROOT_TOKEN="$(${COMPOSE} logs vault | awk '/Root Token:/ {print $NF}' | tail -n 1 | sed 's/\x1b\[[0-9;]*m//g')"
+exec_in_vault vault login "$ROOT_TOKEN"
 exec_in_vault vault status
+
 exec_in_vault vault auth enable userpass
 exec_in_vault vault auth enable -path=userpass2 userpass
-exec_in_vault vault auth enable github
-exec_in_vault vault auth enable radius
-exec_in_vault vault auth enable -path=awsaccount1 aws-ec2
-exec_in_vault vault auth enable okta
-exec_in_vault vault auth enable approle
-exec_in_vault vault auth enable kubernetes
+exec_in_vault vault auth enable github || true
+exec_in_vault vault auth enable radius || true
+exec_in_vault vault auth enable -path=awsaccount1 aws-ec2 || true
+exec_in_vault vault auth enable okta || true
+exec_in_vault vault auth enable approle || true
+
 exec_in_vault vault policy write admin /misc/admin.hcl
 exec_in_vault vault write auth/userpass/users/test password=test policies=admin
 exec_in_vault vault write auth/userpass2/users/john password=doe policies=admin
 exec_in_vault vault write auth/userpass/users/lame password=lame policies=default
 exec_in_vault vault write auth/radius/users/test password=test policies=admin
-exec_in_vault vault write secret/test somekey=somedata
-exec_in_vault vault secrets enable -path=ultrasecret generic
-exec_in_vault vault write ultrasecret/moretest somekey=somedata
-exec_in_vault vault write ultrasecret/dir1/secret somekey=somedata
-exec_in_vault vault write ultrasecret/dir2/secret somekey=somedata
-exec_in_vault vault write ultrasecret/dir2/secret2 somekey=somedata
-exec_in_vault vault write ultrasecret/admincantlistthis/butcanreadthis somekey=somedata
-exec_in_vault vault write ultrasecret/admincantreadthis somekey=somedata
+exec_in_vault vault auth enable -path=ultrasecret kv-v2
+exec_in_vault vault kv put secret/test somekey=somedata
+exec_in_vault vault kv put ultrasecret/moretest somekey=somedata
+exec_in_vault vault kv put ultrasecret/dir1/secret somekey=somedata
+exec_in_vault vault kv put ultrasecret/dir2/secret somekey=somedata
+exec_in_vault vault kv put ultrasecret/dir2/secret2 somekey=somedata
+exec_in_vault vault kv put ultrasecret/admincantlistthis/butcanreadthis somekey=somedata
+exec_in_vault vault kv put ultrasecret/admincantreadthis somekey=somedata
 
-echo "------------- Vault Root Token -------------"
-docker-compose logs vault | grep 'Root Token:' | tail -n 1
+echo "------------- ${COMPOSE} up -d --build -------------"
+${COMPOSE} up -d --build
+
+echo "------------- Vault root token -------------"
+echo "$ROOT_TOKEN"

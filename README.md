@@ -1,221 +1,276 @@
-<a href="https://github.com/djenriquez/vault-ui">
-    <img src="http://svgshare.com/i/177.svg" alt="Vault-UI Logo"
-         title="Vault-UI" width="64px" align="right" />
-</a>
+# Vault UI
 
-[![Run Status](https://api.shippable.com/projects/581e7826fbc68c0f00deb0ca/badge?branch=master)](https://app.shippable.com/projects/581e7826fbc68c0f00deb0ca)
-[![](https://images.microbadger.com/badges/image/djenriquez/vault-ui.svg)](https://microbadger.com/images/djenriquez/vault-ui)
-[![Join the chat at https://gitter.im/vault-ui/Lobby](https://badges.gitter.im/vault-ui/Lobby.svg)](https://gitter.im/vault-ui/Lobby)
+A modern web and desktop interface for [HashiCorp Vault](https://www.vaultproject.io/).
 
-# Vault-UI
+Vault UI is a TypeScript React application backed by a small Node/Express BFF (backend-for-frontend). It runs as a shared web application, a Docker container, or an Electron desktop app.
 
-A beautiful way to manage your Hashicorp Vault
+## Highlights
 
-![](http://i.imgur.com/COBxk3m.gif)
+- **KV secrets engines** — browse KV v1 and v2 mounts, edit JSON, search and paginate.
+- **KV v2 versioning** — read historical versions, soft-delete/undelete, destroy versions, and edit metadata (custom metadata, max versions, CAS, delete-after).
+- **Auth backend management** — configure and manage AppRole, AWS IAM/EC2, Azure, Cert, GCP, GitHub, JWT, Kubernetes, LDAP, OIDC, Okta, RADIUS, Userpass, and Token backends from declarative schemas.
+- **Token management** — inspect the current token, renew leases, list accessors, revoke tokens, create tokens and token roles, and view accessor details.
+- **ACL policies** — read and write policies through `sys/policies/acl` with a fallback to the legacy `sys/policy` API.
+- **Mount management** — mount, tune, and disable secret engines and auth methods.
+- **Health and seal operations** — inspect cluster health/leader state, unseal with key shares, and seal the cluster.
+- **Namespaces** — send `X-Vault-Namespace` for Vault Enterprise namespaces.
+- **Wrapping** — wrap data or existing secrets, unwrap tokens, rewrap, and share single-use unwrap URLs.
+- **Login methods** — Token, Username & Password, LDAP, Okta, GitHub, AppRole, JWT, OIDC/SSO, AWS, and Kubernetes.
+- **Modern UI** — Material UI, responsive layout, light/dark/system themes, code-split routes, and JSON editing powered by `vanilla-jsoneditor`.
 
-## Features
+## Requirements
 
-- Easy to deploy as Web App
-- Desktop version works on Mac, Linux and Windows
-- Material UI Design
-- Integrated JSON Editor
-- Written in React
+- Node.js **22.12+** (Node 24 LTS recommended)
+- pnpm **10+**
+- A reachable Vault server (Vault 1.x or later)
 
-## Installation
+## Quick start
 
-### Desktop Version
-
-Vault-UI Desktop is available for the following operating systems:
-- Windows
-- MacOS
-- Linux (32bit and 64bit AppImage)
-
-Download the latest version from the release page and install/run the software
-
-### Web Version
-
-Vault-UI can be deployed as a shared web app for your organization
-
-Docker images are automatically built using an [automated build on Docker Hub](https://hub.docker.com/r/djenriquez/vault-ui/builds/).
-We encourage that versioned images are used for production.
-
-To run Vault-UI using the latest Docker image:
 ```bash
-docker run -d \
--p 8000:8000 \
---name vault-ui \
-djenriquez/vault-ui
+pnpm install
+pnpm dev
 ```
 
-#### Advanced configuration options
+This starts:
 
-By default, connection and authentication parameters must be configured by clicking on the configuration cog on the login page.
-Using environment variables (via docker), an administrator can pre-configure those parameters.
+- the Vite frontend on <http://localhost:5173>
+- the Express API/proxy server on <http://localhost:8000>
 
-Example command to pre-configure the Vault server URL and authentication method
+Vite proxies `/api` and `/v1` to the API server. Open the frontend URL and enter your Vault address.
+
+### Production build
+
 ```bash
-docker run -d \
--p 8000:8000 \
--e VAULT_URL_DEFAULT=http://vault.server.org:8200 \
--e VAULT_AUTH_DEFAULT=GITHUB \
---name vault-ui \
-djenriquez/vault-ui
+pnpm build       # frontend -> dist/, server -> dist-server/
+pnpm start       # serves dist/ and proxies /v1 on port 8000
 ```
 
-Supported environment variables:
-- `PORT` Sets the port for Vault-UI to listen on. (Default 8000)
-- `CUSTOM_CA_CERT` Pass a self-signed certificate that the system should trust.
-- `NODE_TLS_REJECT_UNAUTHORIZED` Disable TLS server side validation. (ex. vault deployed with self-signed certificate). Set to `0` to disable.
-- `VAULT_URL_DEFAULT` Sets the default vault endpoint. Note: protocol part of the url is mandatory. Example: http://10.0.0.1:8200
-- `VAULT_AUTH_DEFAULT` Sets the default authentication method type. See below for supported authentication methods.
-- `VAULT_AUTH_BACKEND_PATH` Sets the default backend path. Useful when multiple backends of the same type are mounted on the vault file system.
-- `VAULT_SUPPLIED_TOKEN_HEADER` Instructs Vault-UI to attempt authentication using a token provided by the client in the specified HTTP request header.
+## Make targets
 
-This defaults can be overridden if the user fills out the endpoint and auth method manually.
+`make help` lists everything. Common targets:
 
+| Target              | Description                                      |
+| ------------------- | ------------------------------------------------ |
+| `make install`      | Install dependencies with pnpm                   |
+| `make dev`          | Run frontend and API server together             |
+| `make build`        | Build frontend and server                        |
+| `make start`        | Start the compiled server                        |
+| `make lint`         | Run ESLint                                       |
+| `make typecheck`    | Type-check frontend, server, and Electron        |
+| `make test`         | Run the Vitest suite                             |
+| `make coverage`     | Run tests with coverage                          |
+| `make check`        | Lint + type-check + tests                        |
+| `make docker-build` | Build the production Docker image                |
+| `make docker-up`    | Start Vault and Vault UI with Docker Compose     |
+| `make docker-down`  | Stop Docker Compose services                     |
+| `make package`      | Build a desktop package for the current platform |
 
-Current supported login methods:
-- `GITHUB` : When using the [GitHub](https://www.vaultproject.io/docs/auth/github.html) backend
-- `USERNAMEPASSWORD` : When using the [Username & Password](https://www.vaultproject.io/docs/auth/userpass.html) or [RADIUS](https://www.vaultproject.io/docs/auth/radius.html) backends
-- `LDAP` : When using the [LDAP](https://www.vaultproject.io/docs/auth/ldap.html) backend
-- `TOKEN` : When using the [Tokens](https://www.vaultproject.io/docs/auth/token.html) backend
+## Docker
 
-Current supported management of backend auth methods:
-- [GitHub](https://www.vaultproject.io/docs/auth/github.html)
-- [RADIUS](https://www.vaultproject.io/docs/auth/radius.html)
-- [AWS-EC2](https://www.vaultproject.io/docs/auth/aws-ec2.html)
-- [Username & Password](https://www.vaultproject.io/docs/auth/userpass.html)
-- [Token](https://www.vaultproject.io/docs/auth/token.html)
-- [AppRole](https://www.vaultproject.io/docs/auth/approle.html)
-- [Kubernetes](https://www.vaultproject.io/docs/auth/kubernetes.html)
-
-In some cases, users might want to use middleware to authenticate into Vault-UI for purposes like SSO. In this case, the `VAULT_SUPPLIED_TOKEN_HEADER` may be populated with the name of the header that contains a token to be used for authentication.
-
-
-## Usage
-
-### Basic policy for Vault-UI users
-A user/token accessing Vault-UI requires a basic set of capabilities in order to correctly discover and display the various mounted backends.
-Please make sure your user is granted a policy with at least the following permissions:
-
-#### JSON
-```json
-{
-  "path": {
-    "auth/token/lookup-self": {
-      "capabilities": [
-        "read"
-      ]
-    },
-    "sys/capabilities-self": {
-      "capabilities": [
-        "update"
-      ]
-    },
-    "sys/mounts": {
-      "capabilities": [
-        "read"
-      ]
-    },
-    "sys/auth": {
-      "capabilities": [
-        "read"
-      ]
-    }
-  }
-}
+```bash
+docker compose up -d --build
 ```
 
-#### HCL
-```
-path "auth/token/lookup-self" {
-    capabilities = [ "read" ]
-}
+The compose file starts a Vault dev server (`http://localhost:8200`, root token `root`) and Vault UI at <http://localhost:8000>. The application is pre-configured with `VAULT_URL_DEFAULT=http://vault:8200` and token authentication.
 
-path "sys/capabilities-self" {
-    capabilities = [ "update" ]
-}
+Build and run the image without Compose:
 
-path "sys/mounts" {
-    capabilities = [ "read" ]
-}
-
-path "sys/auth" {
-    capabilities = [ "read" ]
-}
+```bash
+docker build -t vault-ui .
+docker run --rm -p 8000:8000 \
+  -e VAULT_URL_DEFAULT=https://vault.example.com:8200 \
+  vault-ui
 ```
 
-### Secrets
-Secrets are now managed using the graphical [josdejong/jsoneditor](https://github.com/josdejong/jsoneditor) JSON editor. Schema validation is enforced on policies to aid the operator in writing correct syntax.
+The container runs as a non-root user and exposes a `/healthz` health check.
 
-Secrets also are accessible directly by key from a browser by navigating to the URI `/secrets/<backendtype>/<mountpoint>/key`. For example, if you have a generic secret key of /hello/world/vault using the _generic_ mount `secret/`, one can navigate to this directly through http://vault-ui.myorg.com/secrets/secret/hello/world/vault.
+## Configuration
 
-#### Root key bias
-By default, secrets will display as their raw JSON value represented by the `data` field in the HTTP GET response metadata. However, users can apply a "Root Key" bias to the secrets through the settings page. The "Root Key" will be used when reading, creating and updating secrets such that the value displayed in the UI is the value stored at the "Root Key". For example, if the secret at `secret/hello` is `{ "value": "world" }`, setting the "Root Key" to `value` will update the UI such that the secret will display as simply "world" instead of `{ "value": "world" }`.
+The web server reads the following environment variables:
 
+| Variable                        | Default      | Description                                                                                                             |
+| ------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                          | `8000`       | HTTP listen port                                                                                                        |
+| `HOST`                          | `0.0.0.0`    | HTTP listen address                                                                                                     |
+| `VAULT_URL_DEFAULT`             | empty        | Default Vault address shown on the login page                                                                           |
+| `VAULT_URL_DEFAULT_FORCE`       | `false`      | Prevent users from changing the Vault URL                                                                               |
+| `VAULT_AUTH_DEFAULT`            | `TOKEN`      | Default login method (`TOKEN`, `USERPASSWORD`, `LDAP`, `OKTA`, `GITHUB`, `APPROLE`, `JWT`, `OIDC`, `AWS`, `KUBERNETES`) |
+| `VAULT_AUTH_DEFAULT_FORCE`      | `false`      | Prevent users from changing the login method                                                                            |
+| `VAULT_AUTH_BACKEND_PATH`       | empty        | Default auth mount path                                                                                                 |
+| `VAULT_AUTH_BACKEND_PATH_FORCE` | `false`      | Prevent users from changing the auth mount path                                                                         |
+| `VAULT_NAMESPACE_DEFAULT`       | empty        | Default Vault Enterprise namespace                                                                                      |
+| `VAULT_SUPPLIED_TOKEN_HEADER`   | empty        | Trust a token from this request header (for SSO middleware)                                                             |
+| `VAULT_PROXY_TIMEOUT_MS`        | `60000`      | Upstream Vault request timeout                                                                                          |
+| `CORS_ORIGIN`                   | disabled     | Enable CORS for a comma-separated list of origins, or `*`                                                               |
+| `SERVE_STATIC`                  | `true`       | Serve the built SPA from the API server                                                                                 |
+| `TRUST_PROXY`                   | `false`      | Trust the first reverse-proxy hop                                                                                       |
+| `MAX_REQUEST_BODY`              | `10mb`       | Maximum JSON request body                                                                                               |
+| `CUSTOM_CA_CERT`                | empty        | PEM certificate written to a temporary trust store                                                                      |
+| `NODE_TLS_REJECT_UNAUTHORIZED`  | Node default | Set to `0` only for self-signed development certificates                                                                |
 
-### Policies
-Policies are managed also using the [josdejong/jsoneditor](https://github.com/josdejong/jsoneditor) JSON editor. Currently, GitHub and raw Tokens are the only supported authentication backends for associated policies.
+For the desktop build, defaults can be supplied at build time with `VITE_VAULT_URL_DEFAULT`, `VITE_VAULT_AUTH_DEFAULT`, `VITE_VAULT_AUTH_BACKEND_PATH`, and `VITE_VAULT_NAMESPACE_DEFAULT`.
 
-### Token Management
-Users have the ability to create and revoke tokens, manage token roles and list accessors. The following permissions are needed at minimum for this feature:
+## Required Vault policy
 
-#### JSON:
-```json
-{
-  "path": {
-     "auth/token/accessors": {
-       "capabilities": [
-         "sudo",
-         "list"
-       ]
-    },
-     "auth/token/lookup-accessor/*": {
-       "capabilities": [
-         "read"
-       ]
-    }
-  }
-}
-```
-#### HCL
+Vault UI degrades gracefully when permissions are missing, but a typical operator token needs:
+
 ```hcl
-path "auth/token/accessors" {
-    capabilities = [ "sudo", "list" ]
+# Capability checks and discovery
+path "sys/capabilities-self" {
+  capabilities = ["update"]
+}
+path "sys/mounts" {
+  capabilities = ["read", "list"]
+}
+path "sys/auth" {
+  capabilities = ["read", "list"]
+}
+path "sys/internal/ui/mounts" {
+  capabilities = ["read"]
+}
+path "sys/health" {
+  capabilities = ["read"]
+}
+path "sys/seal-status" {
+  capabilities = ["read"]
+}
+path "sys/leader" {
+  capabilities = ["read"]
 }
 
-path "auth/token/lookup-accessor/*" {
-    capabilities = [ "read" ]
+# Policies
+path "sys/policies/acl" {
+  capabilities = ["read", "list"]
+}
+path "sys/policies/acl/*" {
+  capabilities = ["create", "read", "update", "delete", "list"]
+}
+
+# Token management
+path "auth/token/lookup-self" {
+  capabilities = ["read"]
+}
+path "auth/token/renew-self" {
+  capabilities = ["update"]
+}
+path "auth/token/revoke-self" {
+  capabilities = ["update"]
+}
+path "auth/token/accessors" {
+  capabilities = ["sudo", "list"]
+}
+path "auth/token/lookup-accessor" {
+  capabilities = ["update"]
+}
+path "auth/token/revoke-accessor" {
+  capabilities = ["update"]
+}
+path "auth/token/create" {
+  capabilities = ["update"]
+}
+path "auth/token/create-orphan" {
+  capabilities = ["update"]
+}
+path "auth/token/roles/*" {
+  capabilities = ["create", "read", "update", "delete", "list"]
+}
+
+# KV v2 (adjust the mount name)
+path "secret/data/*" {
+  capabilities = ["create", "read", "update", "delete", "list"]
+}
+path "secret/metadata/*" {
+  capabilities = ["read", "list", "delete"]
+}
+path "secret/delete/*" {
+  capabilities = ["update"]
+}
+path "secret/undelete/*" {
+  capabilities = ["update"]
+}
+path "secret/destroy/*" {
+  capabilities = ["update"]
 }
 ```
 
-### Response Wrapping
-Vault-UI supports response-wrapping of secrets in _generic_ backends. Wrapping custom JSON data is also supported.
+Add the corresponding `auth/<mount>/*`, `sys/mounts/*`, `sys/auth/*`, and wrapping paths as needed.
 
+## Architecture
+
+```
+src/                  React + TypeScript frontend (Vite)
+  api/                Vault API client, KV helpers, capabilities, policies
+  components/         layout and reusable UI components
+  config/             declarative auth backend/login method definitions
+  context/            auth, settings, and toast providers
+  pages/              route-level pages (lazy loaded)
+server/               Express 5 API server (TypeScript)
+  config.ts           environment configuration
+  proxy.ts            stateless /v1 reverse proxy to Vault
+  app.ts              routes, static hosting, and SPA fallback
+electron/             Electron main process (ESM)
+tests/                shared test setup
+```
+
+Web requests flow through the Node proxy: the browser calls `/v1/...?vaultaddr=...`, and the server forwards the request to the chosen Vault. This avoids browser CORS issues and keeps self-signed certificates manageable. Desktop builds call Vault directly and use a hash router.
 
 ## Development
-Install the [yarn](https://yarnpkg.com/en/docs/install) package manager
 
-### With Docker
-The command below will use [Docker Compose](https://docs.docker.com/compose/)
-to spin up a Vault dev server and a Vault UI server that you can log
-into with username "test" and password "test":
-```sh
+```bash
+pnpm dev            # API + frontend
+pnpm dev:web        # frontend only
+pnpm dev:server     # API only, hot reload through tsx
+pnpm dev:desktop    # Electron + Vite dev server
+```
+
+Run the demo Vault environment:
+
+```bash
 ./run-docker-compose-dev
 ```
 
-If major changes are made, be sure to run `docker-compose build` to rebuild dependencies.
+This starts Vault, enables several auth methods, seeds KV v2 secrets, and builds the UI container.
 
-### Without Docker
-The following will spin up a Vault UI server only. It will not set up
-Vault for you:
-```sh
-yarn run dev-pack &
-yarn start
+## Testing and quality
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm coverage
+pnpm check
 ```
 
-# Licensing
-Vault-UI is licensed under BSD 2-Clause. See [LICENSE](https://github.com/djenriquez/vault-ui/blob/master/LICENSE) for the full license text.
+Tests use Vitest, Testing Library, jsdom, and Supertest. Server proxy tests inject a mock `fetch` implementation.
 
-# Donations
-Vault-UI maintainers are humbly accepting [donations](https://github.com/djenriquez/vault-ui/wiki/Donations) as a way of saying thank you!
+## Desktop app
+
+```bash
+pnpm dev:desktop
+pnpm build:desktop
+pnpm package           # electron-builder for the current platform
+pnpm package:linux     # or :mac / :win
+```
+
+Desktop builds use `contextIsolation`, disable `nodeIntegration`, and open external links in the system browser. Because the desktop client talks to arbitrary Vault servers that typically do not send CORS headers, the renderer's same-origin policy is disabled while Node integration remains off. Prefer the web build when you need strict browser sandboxing.
+
+## Migrating from Vault UI 2.x
+
+- The Webpack/Babel/React 15 stack has been replaced by Vite, React 19, TypeScript, and Material UI.
+- `server.js`/`src/*.js` were replaced by the typed Express 5 server in `server/`.
+- `yarn` was replaced by `pnpm`; `yarn.lock` is intentionally removed.
+- Policies now use `sys/policies/acl` first, with automatic fallback to `sys/policy`.
+- The old `/vaultui` configuration endpoint is still supported alongside `/api/config`.
+- Tokens persisted by 2.x under `vaultAccessToken`/`vaultUrl` are migrated automatically on first load.
+- Secret paths follow Vault's KV v2 conventions internally; no user data is migrated by Vault UI itself.
+
+## Security notes
+
+- Tokens are stored in browser `localStorage` (required for a serverless desktop client). Prefer short-lived tokens, HTTPS, and a strict CSP at your reverse proxy.
+- The `/v1` proxy is intentionally open to the Vault address supplied by the client. Run Vault UI only on trusted networks, or restrict `VAULT_URL_DEFAULT`/egress at the network layer.
+- CORS is disabled by default. Enable `CORS_ORIGIN` only when the frontend is served from a different origin than the API.
+- `VAULT_SUPPLIED_TOKEN_HEADER` must only be set behind a trusted authenticating proxy; otherwise a client can forge the header.
+
+## License
+
+ISC. See [LICENSE](LICENSE).

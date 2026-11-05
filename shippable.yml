@@ -1,7 +1,4 @@
-language: node_js
-
-node_js:
-  - 5.10
+language: minimal
 
 env:
   global:
@@ -9,5 +6,9 @@ env:
 
 build:
   ci:
+    - corepack enable
+    - corepack prepare pnpm@10.28.0 --activate
+    - pnpm install --frozen-lockfile
+    - pnpm check
+    - pnpm build
     - docker build -t ${PROJECT}:ci .
-    # run tests here

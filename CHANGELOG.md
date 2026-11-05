@@ -1,22 +1,61 @@
+# 3.0.0
+
+## Breaking changes
+
+- Replaced the Webpack 3 / Babel / React 15 / Material-UI 0.19 stack with Vite, React 19, TypeScript 6, and Material UI 9. TypeScript 7 is not used yet because typescript-eslint does not support it.
+- Replaced Yarn with pnpm and removed `yarn.lock`.
+- Replaced the legacy `server.js` and `src/*.js` backend with a typed Express 5 server.
+- Split the UI into route-level, lazily loaded pages and removed the old `app/` component tree.
+
+## Features
+
+- KV v2 support: version history, soft delete/undelete, destroy, custom metadata, CAS, and max-version settings.
+- Full token manager: accessors, accessor details, revocation, token roles, new tokens, and orphan tokens.
+- Modern ACL policy management via `sys/policies/acl` with automatic `sys/policy` fallback.
+- Mount management for secret engines and auth methods, including tune and disable.
+- Health dashboard with seal/unseal operations and leader information.
+- Vault Enterprise namespace support through `X-Vault-Namespace`.
+- New login methods: AppRole, JWT, OIDC/SSO, AWS, and Kubernetes.
+- Declarative management for AppRole, AWS IAM/EC2, Azure, Cert, GCP, GitHub, JWT, Kubernetes, LDAP, OIDC, Okta, RADIUS, Userpass, and Token auth backends.
+- Responsive layout with light, dark, and system themes.
+- Code-split frontend bundles and a modern JSON editor.
+- Docker multi-stage build running as a non-root user with a health check.
+- Makefile with development, build, quality, Docker, and packaging targets.
+- Vitest, Testing Library, and Supertest test suites.
+
+## Improvements
+
+- Configurable proxy timeout, CORS allowlist, trusted proxy support, and request body limit.
+- Forwarded Vault request IDs and `WWW-Authenticate` headers.
+- Automatic migration of legacy `vaultAccessToken`/`vaultUrl` localStorage keys.
+- Safer Electron defaults (`contextIsolation`, `sandbox`, no `nodeIntegration`).
+
 # 2.4.0 (unreleased)
+
 # Features
-- Add KV compatibility #198 
-- Upgrade dependencies #200 
+
+- Add KV compatibility #198
+- Upgrade dependencies #200
 
 # Bug fixes
-- Fix desktop client icons #199 - #157 
-- Fix issue with favicon #188 
+
+- Fix desktop client icons #199 - #157
+- Fix issue with favicon #188
 
 # 2.3.0
+
 ## Features:
-- Refactor PolicyPicker to ItemPicker for general use - #175 
-- Refactor item listing to use a centralized class /w filtering, pagination and sorting by default - #175 + #187 
+
+- Refactor PolicyPicker to ItemPicker for general use - #175
+- Refactor item listing to use a centralized class /w filtering, pagination and sorting by default - #175 + #187
 - Add backend mount description field - #105
 - Allow self-signed CA certifications - #140
-- Support Okta Authentication Backend - #156 
+- Support Okta Authentication Backend - #156
 
 # 2.2.0
+
 ## Features
+
 - Add filtering to all lists - https://github.com/djenriquez/vault-ui/pull/106
 - Add pagination to secrets list - https://github.com/djenriquez/vault-ui/pull/110
 - Add JSON diff view to compare updates - https://github.com/djenriquez/vault-ui/pull/84
@@ -24,16 +63,20 @@
 - Add AWS auth backend with IAM - https://github.com/djenriquez/vault-ui/pull/126
 
 ## Enhancements
+
 - Optimize Docker image size + caching - https://github.com/djenriquez/vault-ui/pull/122
 
 ## Bug fixes
+
 - Fix issue with secrets loading causing UI to be unresponsive - https://github.com/djenriquez/vault-ui/pull/110
 - Fix docker build electron dependency - https://github.com/djenriquez/vault-ui/pull/112
 - Fix issue with sorting/pagination of secrets not affecting the entire secret namespace - https://github.com/djenriquez/vault-ui/pull/127 & https://github.com/djenriquez/vault-ui/pull/134
 - Fix issue with trailing slashes being sent to Vault requests - https://github.com/djenriquez/vault-ui/pull/104
 
 # 2.1.0
+
 ## Features
+
 - Support AWS EC2 authentication backend - https://github.com/djenriquez/vault-ui/pull/76
 - Support User/Pass authentication backend - https://github.com/djenriquez/vault-ui/pull/94
 - Improve GitHub authentication backend - https://github.com/djenriquez/vault-ui/pull/78
@@ -42,12 +85,15 @@
 - Support use with new Desktop App - https://github.com/djenriquez/vault-ui/pull/85
 
 ## Bug Fixes
+
 - Fix 307 redirects
 
 # 2.0.1
+
 - Fix reference to Vault icon
 
 # 2.0.0
+
 - Improved the UI as a whole - https://github.com/djenriquez/vault-ui/pull/47
   - Added a dynamic navigation menu bar
   - Added ability to renew token before expiration
@@ -61,19 +107,22 @@
 - Support mount management for generic, github and radius- https://github.com/djenriquez/vault-ui/pull/62
 
 # 1.0.1
+
 - Fixed slight token management issues - https://github.com/djenriquez/vault-ui/pull/48
 
 # 1.0.0
+
 - React best-practices inspired refactor - https://github.com/djenriquez/vault-ui/pull/32
 - Update backend API to match Vault API by using the express server as a passthrough - https://github.com/djenriquez/vault-ui/pull/46
 - Added ability to set Default URL + Auth with environment variables - https://github.com/djenriquez/vault-ui/pull/36
-- Added `VAULT_SUPPLIED_TOKEN_HEADER` header to enable SSO functionality - [Feature request #39](https://github.com/djenriquez/vault-ui/issues/39) + #40 
+- Added `VAULT_SUPPLIED_TOKEN_HEADER` header to enable SSO functionality - [Feature request #39](https://github.com/djenriquez/vault-ui/issues/39) + #40
 - Support multiple generic backends - https://github.com/djenriquez/vault-ui/pull/31
 - Fixed bug with auto-logout where large values caused logout to happen immediately - https://github.com/djenriquez/vault-ui/pull/35
 - Improved value editting with [josdejong/jsoneditor](josdejong/jsoneditor) - https://github.com/djenriquez/vault-ui/pull/38 (Note: HCL is no longer supported as a format for managing secrets or policies)
 - Add `Token management` - [Feature request #41](https://github.com/djenriquez/vault-ui/issues/41)
 
 # 0.1.0
+
 - Supports [Github, Username and Password, Token](https://github.com/djenriquez/vault-ui/pull/3), and [LDAP](https://github.com/djenriquez/vault-ui/pull/16) authentication
 - Full [generic secrets management](https://github.com/djenriquez/vault-ui/pull/2)
 - Full [policies management](https://github.com/djenriquez/vault-ui/pull/4)

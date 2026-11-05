@@ -1,0 +1,23 @@
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code,
+pre,
+.monospace {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+/* vanilla-jsoneditor tweaks so the editor blends into MUI surfaces */
+.jse-theme-default .jse-main,
+.jse-theme-dark .jse-main {
+  border: none;
+}

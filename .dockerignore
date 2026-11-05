@@ -1,3 +1,15 @@
 .git
-node_modules/
-release/
+.gitignore
+node_modules
+dist
+dist-server
+dist-electron
+release
+coverage
+*.log
+.DS_Store
+.idea
+.vscode
+misc
+kubernetes
+run-docker-compose-dev
