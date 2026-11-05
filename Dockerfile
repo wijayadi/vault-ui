@@ -1,31 +1,34 @@
-
-FROM node:24-alpine AS base
+FROM node:24-alpine AS build
 RUN npm install -g pnpm@10.28.0
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 WORKDIR /app
 
-FROM base AS deps
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --config.node-linker=hoisted
-
-FROM deps AS build
 COPY . .
-RUN pnpm build && pnpm prune --prod
+# Install and build in a single layer, then remove dev dependencies so the
+# layer does not persist hundreds of thousands of pnpm files.
+RUN pnpm install --frozen-lockfile --config.node-linker=hoisted \
+    && pnpm build \
+    && rm -rf node_modules
 
 FROM node:24-alpine AS runtime
 ENV NODE_ENV=production \
     PORT=8000
 WORKDIR /app
 
-RUN addgroup -S vaultui && adduser -S vaultui -G vaultui
+RUN npm install -g pnpm@10.28.0 \
+    && addgroup -S vaultui \
+    && adduser -S vaultui -G vaultui
 
-COPY --from=build --chown=vaultui:vaultui /app/package.json ./package.json
-COPY --from=build --chown=vaultui:vaultui /app/node_modules ./node_modules
-COPY --from=build --chown=vaultui:vaultui /app/dist ./dist
-COPY --from=build --chown=vaultui:vaultui /app/dist-server ./dist-server
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile --config.node-linker=hoisted \
+    && pnpm store prune \
+    && rm -rf /root/.cache
+
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/dist-server ./dist-server
 COPY --chown=vaultui:vaultui bin/entrypoint.sh ./bin/entrypoint.sh
 
-RUN chmod +x ./bin/entrypoint.sh
+RUN chmod +x ./bin/entrypoint.sh && chown vaultui:vaultui ./bin/entrypoint.sh
 USER vaultui
 
 EXPOSE 8000

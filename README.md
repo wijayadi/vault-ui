@@ -71,7 +71,7 @@ pnpm start       # serves dist/ and proxies /v1 on port 8000
 docker compose up -d --build
 ```
 
-The compose file starts a Vault dev server (`http://localhost:8200`, root token `root`) and Vault UI at <http://localhost:8000>. The application is pre-configured with `VAULT_URL_DEFAULT=http://vault:8200` and token authentication.
+The compose file starts a Vault dev server (`http://localhost:18200`, root token `root`) and Vault UI at <http://localhost:8000>. The Vault host port defaults to `18200` to avoid clashing with a local Vault on `8200`; override it with `VAULT_PORT=8200 docker compose up -d`. The application is pre-configured with `VAULT_URL_DEFAULT=http://vault:8200` and token authentication.
 
 Build and run the image without Compose:
 
