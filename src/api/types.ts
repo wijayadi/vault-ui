@@ -84,6 +84,7 @@ export interface HealthStatus {
   cluster_id?: string;
   seal_type?: string;
   n?: number;
+  t?: number;
   progress?: number;
   nonce?: string;
   type?: string;

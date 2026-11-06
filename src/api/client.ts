@@ -102,7 +102,9 @@ export async function vaultRequest<T = unknown>(
     headers: createHeaders(connection, options.headers),
     timeout: options.timeoutMs ?? connection.timeoutMs ?? 60_000,
     signal: options.signal,
-    validateStatus: options.validateStatus,
+    // Passing `undefined` here would override Axios' default and cause every
+    // HTTP error to resolve, so only health checks opt out of strict statuses.
+    validateStatus: options.validateStatus ?? ((status) => status >= 200 && status < 300),
   };
 
   try {

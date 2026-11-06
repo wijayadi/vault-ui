@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -21,7 +22,7 @@ export function AppLayout() {
   const mobile = useMediaQuery(theme.breakpoints.down('md'));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [expiryDismissed, setExpiryDismissed] = useState(false);
-  const { identity, renew, refreshHealth, logout } = useAuth();
+  const { identity, health, renew, refreshHealth, logout } = useAuth();
   const { notifyError } = useToast();
   const { mounts, authMounts, loading, error, refresh } = useMounts();
   const remaining = useTtlCountdown(identity);
@@ -60,6 +61,19 @@ export function AppLayout() {
           ml: mobile ? 0 : 0,
         }}
       >
+        {!health ? (
+          <Alert
+            severity="warning"
+            sx={{ mb: 2 }}
+            action={
+              <Button color="inherit" size="small" onClick={() => void refreshHealth()}>
+                Retry
+              </Button>
+            }
+          >
+            Vault health information is unavailable. Check the connection or your token permissions.
+          </Alert>
+        ) : null}
         <Outlet />
       </Box>
 

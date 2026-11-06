@@ -136,10 +136,10 @@ export function HealthPage() {
                   Cluster: {health.cluster_name || '—'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Seal type: {sealInfo?.seal_type || health.seal_type || health.type || '—'}
+                  Seal type: {sealInfo?.type || sealInfo?.seal_type || health.seal_type || health.type || '—'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Storage: {health.storage_type || '—'}
+                  Storage: {sealInfo?.storage_type || health.storage_type || '—'}
                 </Typography>
               </CardContent>
             </Card>
@@ -150,13 +150,13 @@ export function HealthPage() {
                   Node
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Active time: {health.active_time || '—'}
+                  Active time: {String(leader?.active_time ?? health.active_time ?? '—')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
-                  Leader: {health.leader_address || '—'}
+                  Leader: {String(leader?.leader_address ?? health.leader_address ?? '—')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Self: {health.is_self ? 'yes' : 'no / unknown'}
+                  Self: {(leader?.is_self ?? health.is_self) ? 'yes' : 'no / unknown'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Performance standby: {health.performance_standby ? 'yes' : 'no'}
@@ -180,7 +180,11 @@ export function HealthPage() {
                     </Typography>
                     <LinearProgress
                       variant="determinate"
-                      value={sealInfo?.n ? ((sealInfo.progress ?? 0) / sealInfo.n) * 100 : 0}
+                      value={
+                        (sealInfo?.n ?? sealInfo?.t)
+                          ? ((sealInfo?.progress ?? 0) / (sealInfo?.n ?? sealInfo?.t ?? 1)) * 100
+                          : 0
+                      }
                     />
                     <Typography variant="caption" color="text.secondary">
                       {sealInfo?.progress ?? health.progress ?? 0} of {sealInfo?.n ?? health.n ?? '?'} key

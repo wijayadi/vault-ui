@@ -1,7 +1,11 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
 import { useAuth } from './context/AuthContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { MountsProvider } from './context/MountsContext';
@@ -50,8 +54,53 @@ function PageFallback() {
   );
 }
 
+function ConnectionUnavailable({
+  url,
+  error,
+  verifying,
+  onRetry,
+  onSignOut,
+}: {
+  url: string;
+  error: string | null;
+  verifying: boolean;
+  onRetry: () => Promise<void>;
+  onSignOut: () => Promise<void>;
+}) {
+  return (
+    <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', p: 2 }}>
+      <Paper sx={{ p: 4, maxWidth: 620, width: '100%' }} elevation={4}>
+        <Typography variant="h5" gutterBottom>
+          Cannot reach Vault
+        </Typography>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error || 'The saved session could not be verified against Vault.'}
+        </Alert>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          Vault URL
+        </Typography>
+        <Typography variant="body2" className="monospace" sx={{ mb: 3, wordBreak: 'break-all' }}>
+          {url || 'not configured'}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Vault UI will not open the authenticated interface until it can verify the token. Check the server
+          URL, certificate, and network, then retry.
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Button variant="contained" onClick={() => void onRetry()} disabled={verifying}>
+            {verifying ? 'Retrying…' : 'Retry connection'}
+          </Button>
+          <Button onClick={() => void onSignOut()} disabled={verifying}>
+            Sign out
+          </Button>
+        </Box>
+      </Paper>
+    </Box>
+  );
+}
+
 function RequireAuth({ children }: { children: ReactNode }) {
-  const { initialized, connection } = useAuth();
+  const { initialized, connection, identity, connectionError, verifying, reconnect, logout } = useAuth();
   const location = useLocation();
 
   if (!initialized) {
@@ -64,6 +113,18 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
   if (!connection.token) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+
+  if (!identity) {
+    return (
+      <ConnectionUnavailable
+        url={connection.url}
+        error={connectionError}
+        verifying={verifying}
+        onRetry={reconnect}
+        onSignOut={logout}
+      />
+    );
   }
 
   return <>{children}</>;

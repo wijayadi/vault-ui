@@ -30,7 +30,7 @@ import {
 import { getHealth } from '../api/system';
 import { resetCapabilityCache, tokenHasCapabilities } from '../api/capabilities';
 import type { HealthStatus, ServerConfig, TokenIdentity, VaultConnection } from '../api/types';
-import { useToast } from './ToastContext';
+import { errorMessage, useToast } from './ToastContext';
 import { useSettings } from './SettingsContext';
 
 const CONNECTION_KEY = 'vault-ui:connection';
@@ -60,12 +60,15 @@ interface AuthContextValue {
   health: HealthStatus | null;
   initialized: boolean;
   loading: boolean;
+  verifying: boolean;
+  connectionError: string | null;
   login: (options: LoginOptions) => Promise<{ authUrl?: string }>;
   completeOidc: (code: string, state: string) => Promise<void>;
   logout: () => Promise<void>;
   renew: () => Promise<void>;
   refreshIdentity: () => Promise<void>;
   refreshHealth: () => Promise<void>;
+  reconnect: () => Promise<void>;
   updateConnection: (patch: { url?: string; namespace?: string; timeoutMs?: number }) => void;
   hasCapabilities: (required: string[], path: string) => Promise<boolean>;
   request: <T = unknown>(method: Method, path: string, options?: VaultRequestOptions) => Promise<T>;
@@ -128,6 +131,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const connectionRef = useRef(connection);
 
   useEffect(() => {
@@ -190,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const nextIdentity = await lookupSelf(initial);
           if (cancelled) return;
           setIdentity(nextIdentity);
+          setConnectionError(null);
           persistConnection(initial);
           const status = await getHealth(initial).catch(() => null);
           if (!cancelled) setHealth(status);
@@ -205,11 +211,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             connectionRef.current = signedOut;
             setConnection(signedOut);
             setIdentity(null);
+            setConnectionError(null);
           } else {
-            // A network outage should not destroy a still-valid token.
+            // Keep the token through transient outages, but require a
+            // successful verification before showing the authenticated UI.
             persistConnection(initial);
+            setIdentity(null);
+            setConnectionError(errorMessage(error));
           }
         }
+      } else {
+        setConnectionError(null);
       }
 
       if (!cancelled) setInitialized(true);
@@ -260,6 +272,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         applyConnection(authenticated);
         connectionRef.current = authenticated;
         setIdentity(nextIdentity);
+        setConnectionError(null);
         resetCapabilityCache();
         await refreshHealth();
         notify('Signed in to Vault');
@@ -322,6 +335,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setConnection(signedOut);
     setIdentity(null);
     setHealth(null);
+    setConnectionError(null);
     navigate('/login');
   }, [navigate]);
 
@@ -347,6 +361,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       applyConnection(next);
       connectionRef.current = next;
+      setConnectionError(null);
       if (urlChanged) {
         setIdentity(null);
         setHealth(null);
@@ -354,6 +369,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     [applyConnection],
   );
+
+  const reconnect = useCallback(async () => {
+    const current = connectionRef.current;
+    if (!current.url || !current.token) return;
+
+    setVerifying(true);
+    setConnectionError(null);
+    try {
+      const nextIdentity = await lookupSelf(current);
+      setIdentity(nextIdentity);
+      persistConnection(current);
+      await refreshHealth();
+    } catch (error) {
+      const rejected =
+        error instanceof VaultApiError &&
+        (error.status === 400 || error.status === 401 || error.status === 403);
+
+      if (rejected) {
+        clearStoredConnection();
+        const signedOut = { ...current, token: '' };
+        connectionRef.current = signedOut;
+        setConnection(signedOut);
+        setIdentity(null);
+      } else {
+        setConnectionError(errorMessage(error));
+      }
+    } finally {
+      setVerifying(false);
+    }
+  }, [refreshHealth]);
 
   const request = useCallback(
     <T,>(method: Method, path: string, options: VaultRequestOptions = {}) =>
@@ -379,12 +424,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       health,
       initialized,
       loading,
+      verifying,
+      connectionError,
       login,
       completeOidc,
       logout,
       renew,
       refreshIdentity,
       refreshHealth,
+      reconnect,
       updateConnection,
       hasCapabilities,
       request,
@@ -397,12 +445,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       health,
       initialized,
       loading,
+      verifying,
+      connectionError,
       login,
       completeOidc,
       logout,
       renew,
       refreshIdentity,
       refreshHealth,
+      reconnect,
       updateConnection,
       hasCapabilities,
       request,
